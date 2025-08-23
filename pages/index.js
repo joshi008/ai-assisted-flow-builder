@@ -4,9 +4,12 @@ import {
   HiPlus, 
   HiCube,
   HiClipboardList,
-  HiMenuAlt2
+  HiMenuAlt2,
+  HiSave,
+  HiTrash
 } from "react-icons/hi";
 import Sidebar from "../components/Sidebar";
+import FlowCanvas from "../components/FlowCanvas";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,25 +23,65 @@ const geistMono = Geist_Mono({
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [flowOperations, setFlowOperations] = useState({});
 
   const menuItems = [
     {
       id: 'add-prompt',
       label: 'Add Prompt Node',
       icon: HiCube,
-      onClick: () => console.log('Add prompt node clicked')
+      onClick: () => {
+        if (flowOperations.addPromptNode) {
+          flowOperations.addPromptNode();
+        }
+      }
     },
     {
       id: 'add-task',
       label: 'Add Task Node', 
       icon: HiClipboardList,
-      onClick: () => console.log('Add task node clicked')
+      onClick: () => {
+        if (flowOperations.addTaskNode) {
+          flowOperations.addTaskNode();
+        }
+      }
+    }
+  ];
+
+  const controlItems = [
+    {
+      id: 'save-flow',
+      label: 'Save Locally',
+      icon: HiSave,
+      onClick: () => {
+        if (flowOperations.saveFlow) {
+          flowOperations.saveFlow();
+        }
+      }
+    },
+    {
+      id: 'clear-flow',
+      label: 'Clear Flow',
+      icon: HiTrash,
+      onClick: () => {
+        if (flowOperations.clearFlow && confirm('Are you sure you want to clear the entire flow?')) {
+          flowOperations.clearFlow();
+        }
+      }
     }
   ];
 
   const handleInputSubmit = (text) => {
     console.log('Submit clicked:', text);
     // Future functionality will be implemented here
+  };
+
+  const handleNodesChange = (operations) => {
+    setFlowOperations(prev => ({ ...prev, ...operations }));
+  };
+
+  const handleEdgesChange = (operations) => {
+    setFlowOperations(prev => ({ ...prev, ...operations }));
   };
 
   return (
@@ -66,6 +109,7 @@ export default function Dashboard() {
           logoIcon={HiCube}
           appName="Promptinator"
           menuItems={menuItems}
+          controlItems={controlItems}
           onInputSubmit={handleInputSubmit}
           inputPlaceholder="Enter your prompt or task..."
         />
@@ -90,27 +134,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Content Area */}
-          <main className="flex-1 p-6 overflow-auto">
-            <div className="max-w-4xl mx-auto">
-              {/* Main Work Area - Blank for now */}
-              <div className="glass p-8 min-h-[500px]">
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center backdrop-blur-lg border border-white/30 shadow-lg"
-                         style={{background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9))'}}>
-                      <HiPlus className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                      Ready for your creativity
-                    </h3>
-                    <p className="text-gray-600">
-                      Use the sidebar to add nodes and start building your workflow
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Content Area - React Flow Canvas */}
+          <main className="flex-1 p-6 overflow-hidden">
+            <FlowCanvas 
+              onNodesChange={handleNodesChange}
+              onEdgesChange={handleEdgesChange}
+            />
           </main>
         </div>
       </div>

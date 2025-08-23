@@ -13,6 +13,7 @@ export default function Sidebar({
   logoIcon: LogoIcon = HiCube,
   appName = "Promptinator",
   menuItems = [],
+  controlItems = [],
   className = "",
   onInputSubmit = () => {},
   inputPlaceholder = "Enter your prompt..."
@@ -80,25 +81,68 @@ export default function Sidebar({
         )}
 
         {/* Menu Items */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={item.onClick}
-              className={`
-                w-full flex items-center px-3 py-2.5 glass-item group
-                ${isCollapsed ? 'justify-center' : 'space-x-3'}
-              `}
-              title={isCollapsed ? item.label : undefined}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+        <nav className="flex-1 px-4 py-6 space-y-4 overflow-y-auto">
+          {/* Node Creation Section */}
+          {!isCollapsed && (
+            <div className="mb-4">
+              <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                Add Nodes
+              </h4>
+            </div>
+          )}
+          <div className="space-y-2">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className={`
+                  w-full flex items-center px-3 py-2.5 glass-item group
+                  ${isCollapsed ? 'justify-center' : 'space-x-3'}
+                `}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!isCollapsed && (
+                  <span className="text-sm font-medium truncate">
+                    {item.label}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Control Items Section */}
+          {controlItems.length > 0 && (
+            <>
               {!isCollapsed && (
-                <span className="text-sm font-medium truncate">
-                  {item.label}
-                </span>
+                <div className="mt-6 mb-4">
+                  <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                    Flow Controls
+                  </h4>
+                </div>
               )}
-            </button>
-          ))}
+              <div className="space-y-2">
+                {controlItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={item.onClick}
+                    className={`
+                      w-full flex items-center px-3 py-2.5 glass-item group
+                      ${isCollapsed ? 'justify-center' : 'space-x-3'}
+                    `}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {!isCollapsed && (
+                      <span className="text-sm font-medium truncate">
+                        {item.label}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </nav>
 
         {/* Collapse Toggle - At Bottom */}

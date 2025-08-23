@@ -88,44 +88,6 @@ body {
   backdrop-filter: blur(6px);
 }
 
-/* Dark mode adjustments
-@media (prefers-color-scheme: dark) {
-  .glass {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .glass-strong {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-  
-  .glass-item {
-    background: rgba(255, 255, 255, 0.03);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .glass-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #111;
-  }
-  
-  .glass-input {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-  
-  .glass-input:focus {
-    background: rgba(255, 255, 255, 0.12);
-  }
-  
-  .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-} */
-
 /* Snackbar for future notifications */
 .snackbar {
   visibility: hidden;
@@ -169,4 +131,74 @@ body {
     bottom: 0;
     opacity: 0;
   }
+}
+
+/* React Flow Glass Theme Overrides */
+.react-flow__node {
+  font-family: inherit;
+}
+
+.react-flow__controls {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+.react-flow__controls button {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #1a1a1a !important;
+  border-radius: 0.5rem !important;
+  transition: all 200ms ease !important;
+}
+
+.react-flow__controls button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.react-flow__minimap {
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.react-flow__edge-path {
+  stroke: rgba(59, 130, 246, 0.8) !important;
+  stroke-width: 2px !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: rgba(59, 130, 246, 1) !important;
+  stroke-width: 3px !important;
+}
+
+.react-flow__connection-path {
+  stroke: rgba(59, 130, 246, 0.6) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 5, 5 !important;
+}
+
+/* Custom handle styles */
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.react-flow__handle.react-flow__handle-top,
+.react-flow__handle.react-flow__handle-bottom {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+.react-flow__handle.react-flow__handle-left,
+.react-flow__handle.react-flow__handle-right {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
 }
