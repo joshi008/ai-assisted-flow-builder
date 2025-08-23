@@ -16,13 +16,23 @@ export default function Sidebar({
   controlItems = [],
   className = "",
   onInputSubmit = () => {},
-  inputPlaceholder = "Enter your prompt..."
+  inputPlaceholder = "Enter your AI prompt..."
 }) {
   const [inputText, setInputText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {
-    onInputSubmit(inputText);
-    setInputText("");
+  const handleSubmit = async () => {
+    if (inputText.trim() && !isLoading) {
+      setIsLoading(true);
+      try {
+        await onInputSubmit(inputText);
+        setInputText("");
+      } catch (error) {
+        console.error('Submit error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
@@ -46,36 +56,53 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Search Input Section - Only visible when not collapsed */}
+        {/* AI Input Section - Only visible when not collapsed */}
         {!isCollapsed && (
           <div className="p-4 border-b border-white/20">
             <div className="space-y-3">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder={inputPlaceholder}
-                className="w-full px-4 py-3 glass-input text-sm"
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-              />
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                  AI Flow Generator
+                </label>
+                <textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={inputPlaceholder}
+                  className="w-full px-4 py-3 glass-input text-sm resize-none h-20"
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
+                  disabled={isLoading}
+                />
+              </div>
               <button
                 onClick={handleSubmit}
-                disabled={!inputText.trim()}
+                disabled={!inputText.trim() || isLoading}
                 className="w-full px-4 py-2.5 font-medium text-sm
                   flex items-center justify-center space-x-2 group
                   disabled:opacity-50 disabled:cursor-not-allowed rounded-xl
                   backdrop-filter backdrop-blur-lg border border-white/30
                   shadow-lg hover:shadow-xl transition-all duration-200"
                 style={{
-                  background: !inputText.trim() 
+                  background: (!inputText.trim() || isLoading)
                     ? 'rgba(59, 130, 246, 0.6)' 
                     : 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9))',
                   color: 'white'
                 }}
               >
-                <HiPaperAirplane className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                <span>Submit</span>
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <HiPaperAirplane className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <span>Generate</span>
+                  </>
+                )}
               </button>
+              <p className="text-xs text-gray-500">
+                Try: "Add a welcome node" or "Create a customer support flow"
+              </p>
             </div>
           </div>
         )}

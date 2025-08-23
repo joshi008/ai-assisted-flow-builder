@@ -8,6 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/genai": "^1.15.0",
+    "@google/generative-ai": "^0.24.1",
     "@xyflow/react": "^12.8.4",
     "next": "15.5.0",
     "react": "19.1.0",

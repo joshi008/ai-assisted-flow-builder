@@ -71,9 +71,50 @@ export default function Dashboard() {
     }
   ];
 
-  const handleInputSubmit = (text) => {
-    console.log('Submit clicked:', text);
-    // Future functionality will be implemented here
+  const handleInputSubmit = async (text) => {
+    if (!flowOperations.getCurrentFlow || !flowOperations.applyAIFlow) {
+      alert('Flow operations not ready. Please wait a moment.');
+      return;
+    }
+
+    try {
+      // Show loading state
+      console.log('Generating AI flow for prompt:', text);
+      
+      const currentFlow = flowOperations.getCurrentFlow();
+      
+      const response = await fetch('/api/ai-generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: text,
+          currentFlow: currentFlow,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate flow');
+      }
+
+      if (data.success && data.flow) {
+        const success = flowOperations.applyAIFlow(data.flow);
+        if (success) {
+          console.log('AI flow applied successfully');
+          // Could show success message here
+        } else {
+          throw new Error('Failed to apply AI-generated flow');
+        }
+      } else {
+        throw new Error('Invalid response from AI');
+      }
+    } catch (error) {
+      console.error('AI Generation Error:', error);
+      alert(`Error: ${error.message}`);
+    }
   };
 
   const handleNodesChange = (operations) => {
@@ -152,13 +193,6 @@ export default function Dashboard() {
           onClick={() => setSidebarCollapsed(true)}
         />
       )}
-
-      {/* Attribution for Background Image */}
-      <div className="fixed bottom-2 right-2 z-50">
-        <div className="glass-item px-2 py-1 text-xs">
-          <span className="text-gray-700">Background image credit</span>
-        </div>
-      </div>
     </div>
   );
 }

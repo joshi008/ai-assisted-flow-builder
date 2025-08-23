@@ -229,11 +229,75 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
     }
   }, [reactFlowInstance, loadFlow]);
 
+  const applyAIFlow = useCallback((aiFlow) => {
+    try {
+      // Restore function references for AI-generated nodes
+      const restoredNodes = aiFlow.nodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          onUpdate: (id, newData) => {
+            setNodes((nds) =>
+              nds.map((n) =>
+                n.id === id ? { ...n, data: { ...n.data, ...newData } } : n
+              )
+            );
+          },
+          onDelete: (id) => {
+            setNodes((nds) => nds.filter((n) => n.id !== id));
+            setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
+          },
+          onAddTransition: node.type === 'promptNode' ? (id, condition, targetNodeId) => {
+            const newEdge = {
+              id: `transition-${Date.now()}`,
+              source: id,
+              target: targetNodeId,
+              type: 'default',
+              label: condition,
+              data: { isTransition: true, condition },
+            };
+            
+            if (!wouldCreateCircularDependency(newEdge, edges, nodes)) {
+              setEdges((eds) => [...eds, newEdge]);
+            } else {
+              alert('Cannot add transition: This would create a circular dependency.');
+            }
+          } : undefined,
+        },
+      }));
+
+      setNodes(restoredNodes);
+      setEdges(aiFlow.edges || []);
+      
+      return true;
+    } catch (error) {
+      console.error('Error applying AI flow:', error);
+      return false;
+    }
+  }, [setNodes, setEdges, edges, nodes]);
+
+  const getCurrentFlow = useCallback(() => {
+    return {
+      nodes: nodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          // Remove function references for JSON serialization
+          onUpdate: undefined,
+          onDelete: undefined,
+          onAddTransition: undefined,
+        }
+      })),
+      edges: edges,
+      viewport: reactFlowInstance ? reactFlowInstance.getViewport() : { x: 0, y: 0, zoom: 1 },
+    };
+  }, [nodes, edges, reactFlowInstance]);
+
   // Pass functions to parent component
   useEffect(() => {
-    if (onNodesChange) onNodesChange({ addPromptNode, addTaskNode });
+    if (onNodesChange) onNodesChange({ addPromptNode, addTaskNode, getCurrentFlow, applyAIFlow });
     if (onEdgesChange) onEdgesChange({ saveFlow, clearFlow });
-  }, [addPromptNode, addTaskNode, saveFlow, clearFlow, onNodesChange, onEdgesChange]);
+  }, [addPromptNode, addTaskNode, saveFlow, clearFlow, getCurrentFlow, applyAIFlow, onNodesChange, onEdgesChange]);
 
   const handleNodesChange = useCallback(
     (changes) => {
