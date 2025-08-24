@@ -13,6 +13,47 @@ import '@xyflow/react/dist/style.css';
 import PromptNode from './nodes/PromptNode';
 import TaskNode from './nodes/TaskNode';
 import { showToast } from '../utils/toast';
+import { autoLayoutFlow } from '../utils/flowLayout';
+
+// Helper function to clean up duplicate edges and ensure proper transition-edge mapping
+const cleanupEdges = (nodes, edges) => {
+  const cleanedEdges = [];
+  const processedTransitions = new Set();
+
+  edges.forEach(edge => {
+    if (edge.data?.isTransition && typeof edge.data.transitionIndex === 'number') {
+      const transitionKey = `${edge.source}-${edge.data.transitionIndex}`;
+      
+      // Skip if we've already processed this transition
+      if (processedTransitions.has(transitionKey)) {
+        return;
+      }
+      processedTransitions.add(transitionKey);
+      
+      // Verify the transition still exists in the source node
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      if (sourceNode && sourceNode.data.transitions && sourceNode.data.transitions[edge.data.transitionIndex]) {
+        const transition = sourceNode.data.transitions[edge.data.transitionIndex];
+        const condition = typeof transition === 'string' ? transition : transition.condition;
+        
+        // Create cleaned edge with correct condition
+        cleanedEdges.push({
+          ...edge,
+          label: condition,
+          data: {
+            ...edge.data,
+            condition: condition,
+          }
+        });
+      }
+    } else {
+      // Non-transition edge, keep as is
+      cleanedEdges.push(edge);
+    }
+  });
+
+  return cleanedEdges;
+};
 
 const nodeTypes = {
   promptNode: PromptNode,
@@ -41,6 +82,12 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
         const sourceNode = nodes.find(n => n.id === params.source);
         
         if (sourceNode && sourceNode.data.transitions[transitionIndex]) {
+          // Check if this transition is already connected to the target node
+          const existingTransition = sourceNode.data.transitions[transitionIndex];
+          if (existingTransition.targetNode === params.target) {
+            showToast.warning('This transition is already connected to that node.');
+            return;
+          }
           // Update the transition with the target node
           setNodes((nds) =>
             nds.map((node) => {
@@ -314,8 +361,44 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
 
   const applyAIFlow = useCallback((aiFlow) => {
     try {
+      // Apply auto-layout to improve node positioning
+      const { nodes: layoutedNodes, edges: layoutedEdges } = autoLayoutFlow(aiFlow.nodes, aiFlow.edges || []);
+      
+      // Clean up duplicate edges and ensure proper transition mapping
+      const cleanedEdges = cleanupEdges(layoutedNodes, layoutedEdges || []);
+      
+      // Ensure all transition nodes have proper targetNode references
+      const finalNodes = layoutedNodes.map(node => {
+        if (node.type === 'promptNode' && node.data.transitions) {
+          const updatedTransitions = node.data.transitions.map((transition, index) => {
+            // Find corresponding edge for this transition
+            const correspondingEdge = cleanedEdges.find(edge => 
+              edge.source === node.id && 
+              edge.data?.isTransition &&
+              edge.data.transitionIndex === index
+            );
+            
+            return {
+              condition: typeof transition === 'string' ? transition : transition.condition,
+              targetNode: correspondingEdge ? correspondingEdge.target : (
+                typeof transition === 'object' ? transition.targetNode : null
+              )
+            };
+          });
+          
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              transitions: updatedTransitions
+            }
+          };
+        }
+        return node;
+      });
+      
       // Restore function references for AI-generated nodes
-      const restoredNodes = aiFlow.nodes.map(node => ({
+      const restoredNodes = finalNodes.map(node => ({
         ...node,
         data: {
           ...node.data,
@@ -352,7 +435,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
       }));
 
       setNodes(restoredNodes);
-      setEdges(aiFlow.edges || []);
+      setEdges(cleanedEdges);
       
       return true;
     } catch (error) {

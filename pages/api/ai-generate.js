@@ -12,8 +12,14 @@ CURRENT FLOW STRUCTURE:
 SUPPORTED NODE TYPES:
 1. PROMPT NODE:
    - type: "promptNode"
-   - data: { title: string, prompt: string, variables: string[], transitions: string[] }
+   - data: { 
+       title: string, 
+       prompt: string, 
+       variables: string[], 
+       transitions: [{ condition: string, targetNode: string | null }] 
+     }
    - Used for AI prompts with conditional transitions
+   - transitions array contains objects with condition text and targetNode ID
 
 2. TASK NODE:
    - type: "taskNode" 
@@ -23,7 +29,11 @@ SUPPORTED NODE TYPES:
 JSON STRUCTURE REQUIREMENTS:
 - Each node needs: id, type, position: {x, y}, data
 - Node IDs should be: "prompt-{timestamp}" or "task-{timestamp}"
-- Positions should be spread out (x: 100-800, y: 100-600) 
+- CRITICAL: Positions must be well-spaced to avoid overlaps:
+  * Use a grid layout with minimum 300px horizontal and 200px vertical spacing
+  * Start new flows at (200, 100) and space subsequent nodes at (500, 100), (800, 100), etc.
+  * For vertical flows: (200, 100), (200, 350), (200, 600), etc.
+  * For complex flows: Use a 3x3 grid pattern with positions like (200,100), (500,100), (800,100), (200,350), (500,350), etc.
 - Variables in prompts use {{variable_name}} format
 - Transitions are conditions like "user says yes", "user asks for help"
 
@@ -35,10 +45,22 @@ RULES:
 }
 
 2. Preserve existing nodes unless specifically asked to modify/delete them
-3. Add new nodes with reasonable positioning (avoid overlaps)
+3. POSITIONING IS CRITICAL: Calculate positions to create a clean, organized layout:
+   - For linear flows: Space nodes horizontally 300px apart
+   - For branching flows: Use tree-like positioning with proper vertical spacing
+   - Always check existing node positions and place new nodes to avoid overlaps
+   - Consider the flow direction (left-to-right is preferred)
 4. Create edges between nodes when relationships are mentioned
-5. For transitions, add them to the transitions array in node data
+5. IMPORTANT - For transitions: Each transition condition should have only ONE corresponding edge
+   - Add transitions to the transitions array in node data as objects: { condition: "condition text", targetNode: "target-id" }
+   - Each transition in the array corresponds to exactly one edge in the edges array
+   - Do NOT create multiple edges for the same transition condition
+   - Example: transition { condition: "user says yes", targetNode: "node-2" } → one edge with label "user says yes"
 6. Variables should be in the variables array and used in prompt with {{}}
+7. LAYOUT EXAMPLES:
+   - Simple flow: Node1(200,100) → Node2(500,100) → Node3(800,100)
+   - Branching: Root(200,100) → Branch1(500,50) & Branch2(500,150) → Merge(800,100)
+   - Complex: Use grid positions to maintain clean organization
 
 USER REQUEST: "{{userPrompt}}"
 

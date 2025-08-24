@@ -190,7 +190,6 @@ body {
 .react-flow__connection-path {
   stroke: rgba(59, 130, 246, 0.6) !important;
   stroke-width: 2px !important;
-  stroke-dasharray: 5, 5 !important;
 }
 
 /* Custom handle styles */

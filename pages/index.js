@@ -118,14 +118,32 @@ export default function Dashboard() {
             autoClose: 3000,
           });
         } else {
-          throw new Error('Failed to apply AI-generated flow');
+          // Dismiss loading toast and show error
+          showToast.update(loadingToast, {
+            render: 'Failed to apply AI-generated flow - invalid format',
+            type: 'error',
+            isLoading: false,
+            autoClose: 6000,
+          });
+          return;
         }
       } else {
-        throw new Error('Invalid response from AI');
+        // Dismiss loading toast and show error
+        showToast.update(loadingToast, {
+          render: 'Invalid response from AI - no flow data received',
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000,
+        });
+        return;
       }
     } catch (error) {
       console.error('AI Generation Error:', error);
-      showToast.error(`AI Generation Error: ${error.message}`, {
+      // Dismiss loading toast and show error
+      showToast.update(loadingToast, {
+        render: `AI Generation Error: ${error.message}`,
+        type: 'error',
+        isLoading: false,
         autoClose: 6000,
       });
     }
