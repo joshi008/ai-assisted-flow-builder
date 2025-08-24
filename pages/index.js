@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { 
   HiPlus, 
@@ -10,6 +10,7 @@ import {
 } from "react-icons/hi";
 import Sidebar from "../components/Sidebar";
 import FlowCanvas from "../components/FlowCanvas";
+import { showToast } from "../utils/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,8 +65,14 @@ export default function Dashboard() {
       label: 'Clear Flow',
       icon: HiTrash,
       onClick: () => {
-        if (flowOperations.clearFlow && confirm('Are you sure you want to clear the entire flow?')) {
-          flowOperations.clearFlow();
+        if (flowOperations.clearFlow) {
+          showToast.confirm(
+            'Are you sure you want to clear the entire flow? This action cannot be undone.',
+            () => {
+              flowOperations.clearFlow();
+              showToast.success('Flow cleared successfully');
+            }
+          );
         }
       }
     }
@@ -73,13 +80,13 @@ export default function Dashboard() {
 
   const handleInputSubmit = async (text) => {
     if (!flowOperations.getCurrentFlow || !flowOperations.applyAIFlow) {
-      alert('Flow operations not ready. Please wait a moment.');
+      showToast.warning('Flow operations not ready. Please wait a moment.');
       return;
     }
 
     try {
-      // Show loading state
-      console.log('Generating AI flow for prompt:', text);
+      // Show loading toast
+      const loadingToast = showToast.loading('Generating AI flow...');
       
       const currentFlow = flowOperations.getCurrentFlow();
       
@@ -103,8 +110,12 @@ export default function Dashboard() {
       if (data.success && data.flow) {
         const success = flowOperations.applyAIFlow(data.flow);
         if (success) {
-          console.log('AI flow applied successfully');
-          // Could show success message here
+          showToast.update(loadingToast, {
+            render: 'AI flow generated successfully! 🎉',
+            type: 'success',
+            isLoading: false,
+            autoClose: 3000,
+          });
         } else {
           throw new Error('Failed to apply AI-generated flow');
         }
@@ -113,17 +124,19 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('AI Generation Error:', error);
-      alert(`Error: ${error.message}`);
+      showToast.error(`AI Generation Error: ${error.message}`, {
+        autoClose: 6000,
+      });
     }
   };
 
-  const handleNodesChange = (operations) => {
+  const handleNodesChange = useCallback((operations) => {
     setFlowOperations(prev => ({ ...prev, ...operations }));
-  };
+  }, []);
 
-  const handleEdgesChange = (operations) => {
+  const handleEdgesChange = useCallback((operations) => {
     setFlowOperations(prev => ({ ...prev, ...operations }));
-  };
+  }, []);
 
   return (
     <div className={`${geistSans.variable} ${geistMono.variable} font-sans`}>

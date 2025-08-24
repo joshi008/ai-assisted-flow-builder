@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import PromptNode from './nodes/PromptNode';
 import TaskNode from './nodes/TaskNode';
+import { showToast } from '../utils/toast';
 
 const nodeTypes = {
   promptNode: PromptNode,
@@ -30,12 +31,60 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
     (params) => {
       // Validate for circular dependencies
       if (wouldCreateCircularDependency(params, edges, nodes)) {
-        alert('Cannot create connection: This would create a circular dependency.');
+        showToast.error('Cannot create connection: This would create a circular dependency.');
         return;
       }
-      setEdges((eds) => addEdge({ ...params, type: 'default' }, eds));
+
+      // Check if this is a transition connection
+      if (params.sourceHandle && params.sourceHandle.startsWith('transition-')) {
+        const transitionIndex = parseInt(params.sourceHandle.replace('transition-', ''));
+        const sourceNode = nodes.find(n => n.id === params.source);
+        
+        if (sourceNode && sourceNode.data.transitions[transitionIndex]) {
+          // Update the transition with the target node
+          setNodes((nds) =>
+            nds.map((node) => {
+              if (node.id === params.source) {
+                const updatedTransitions = [...node.data.transitions];
+                updatedTransitions[transitionIndex] = {
+                  ...updatedTransitions[transitionIndex],
+                  targetNode: params.target
+                };
+                return { 
+                  ...node, 
+                  data: { 
+                    ...node.data, 
+                    transitions: updatedTransitions 
+                  } 
+                };
+              }
+              return node;
+            })
+          );
+
+          // Create the edge with the transition condition as label
+          const transition = sourceNode.data.transitions[transitionIndex];
+          const condition = typeof transition === 'string' ? transition : transition.condition;
+          
+          const newEdge = {
+            ...params,
+            type: 'default',
+            label: condition,
+            data: { 
+              isTransition: true, 
+              condition: condition,
+              transitionIndex: transitionIndex
+            },
+          };
+          
+          setEdges((eds) => addEdge(newEdge, eds));
+        }
+      } else {
+        // Regular connection (not from a transition)
+        setEdges((eds) => addEdge({ ...params, type: 'default' }, eds));
+      }
     },
-    [edges, nodes, setEdges]
+    [edges, nodes, setEdges, setNodes]
   );
 
   const wouldCreateCircularDependency = (newConnection, currentEdges, currentNodes) => {
@@ -80,6 +129,28 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
     return hasCycle(source);
   };
 
+  const onTransitionRemoved = useCallback((nodeId, removedIndex) => {
+    // Update edge indices for transitions after the removed one
+    setEdges((currentEdges) => {
+      return currentEdges.map((edge) => {
+        if (edge.data?.isTransition && 
+            edge.source === nodeId && 
+            typeof edge.data.transitionIndex === 'number' &&
+            edge.data.transitionIndex > removedIndex) {
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              transitionIndex: edge.data.transitionIndex - 1
+            },
+            sourceHandle: `transition-${edge.data.transitionIndex - 1}`
+          };
+        }
+        return edge;
+      });
+    });
+  }, [setEdges]);
+
   const addPromptNode = useCallback(() => {
     const newNode = {
       id: `prompt-${Date.now()}`,
@@ -90,6 +161,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
         prompt: 'Enter your prompt here...',
         variables: [],
         transitions: [],
+
         onUpdate: (id, newData) => {
           setNodes((nds) =>
             nds.map((node) =>
@@ -101,6 +173,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
           setNodes((nds) => nds.filter((node) => node.id !== id));
           setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
         },
+        onTransitionRemoved: onTransitionRemoved,
         onAddTransition: (id, condition, targetNodeId) => {
           // Add transition-based edge
           const newEdge = {
@@ -115,13 +188,14 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
           if (!wouldCreateCircularDependency(newEdge, edges, nodes)) {
             setEdges((eds) => [...eds, newEdge]);
           } else {
-            alert('Cannot add transition: This would create a circular dependency.');
+            showToast.error('Cannot add transition: This would create a circular dependency.');
           }
         },
+
       },
     };
     setNodes((nds) => [...nds, newNode]);
-  }, [setNodes, setEdges, edges, nodes]);
+  }, [setNodes, setEdges, edges, nodes, onTransitionRemoved]);
 
   const addTaskNode = useCallback(() => {
     const newNode = {
@@ -164,7 +238,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
         viewport: reactFlowInstance.getViewport(),
       };
       localStorage.setItem('promptinator-flow', JSON.stringify(flowData));
-      console.log('Flow saved to localStorage');
+      showToast.success('Flow saved to local storage! 💾');
     }
   }, [reactFlowInstance, nodes, edges]);
 
@@ -172,7 +246,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
     setNodes([]);
     setEdges([]);
     localStorage.removeItem('promptinator-flow');
-    console.log('Flow cleared');
+    // Success message is handled by the calling function
   }, [setNodes, setEdges]);
 
   const loadFlow = useCallback(() => {
@@ -197,6 +271,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
               setNodes((nds) => nds.filter((n) => n.id !== id));
               setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
             },
+            onTransitionRemoved: onTransitionRemoved,
             onAddTransition: node.type === 'promptNode' ? (id, condition, targetNodeId) => {
               const newEdge = {
                 id: `transition-${Date.now()}`,
@@ -208,6 +283,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
               };
               setEdges((eds) => [...eds, newEdge]);
             } : undefined,
+
           },
         }));
 
@@ -217,17 +293,24 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
         if (reactFlowInstance && flowData.viewport) {
           reactFlowInstance.setViewport(flowData.viewport);
         }
+        
+        if (flowData.nodes && flowData.nodes.length > 0) {
+          showToast.info(`Flow loaded with ${flowData.nodes.length} nodes`);
+        }
       }
     } catch (error) {
       console.error('Error loading flow:', error);
+      showToast.error('Failed to load saved flow');
     }
-  }, [setNodes, setEdges, reactFlowInstance]);
+  }, [setNodes, setEdges, reactFlowInstance, onTransitionRemoved]);
 
   useEffect(() => {
     if (reactFlowInstance) {
       loadFlow();
     }
   }, [reactFlowInstance, loadFlow]);
+
+
 
   const applyAIFlow = useCallback((aiFlow) => {
     try {
@@ -247,6 +330,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
             setNodes((nds) => nds.filter((n) => n.id !== id));
             setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
           },
+          onTransitionRemoved: onTransitionRemoved,
           onAddTransition: node.type === 'promptNode' ? (id, condition, targetNodeId) => {
             const newEdge = {
               id: `transition-${Date.now()}`,
@@ -260,9 +344,10 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
             if (!wouldCreateCircularDependency(newEdge, edges, nodes)) {
               setEdges((eds) => [...eds, newEdge]);
             } else {
-              alert('Cannot add transition: This would create a circular dependency.');
+              showToast.error('Cannot add transition: This would create a circular dependency.');
             }
           } : undefined,
+
         },
       }));
 
@@ -274,7 +359,7 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
       console.error('Error applying AI flow:', error);
       return false;
     }
-  }, [setNodes, setEdges, edges, nodes]);
+  }, [setNodes, setEdges, edges, nodes, onTransitionRemoved]);
 
   const getCurrentFlow = useCallback(() => {
     return {
@@ -293,6 +378,58 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
     };
   }, [nodes, edges, reactFlowInstance]);
 
+  // Sync edges with transition changes and clean up orphaned edges
+  useEffect(() => {
+    setEdges((currentEdges) => {
+      let edgesUpdated = false;
+      const validEdges = [];
+      
+      // Check each edge for validity and updates
+      currentEdges.forEach((edge) => {
+        if (edge.data?.isTransition && typeof edge.data.transitionIndex === 'number') {
+          const sourceNode = nodes.find(n => n.id === edge.source);
+          
+          if (sourceNode && sourceNode.data.transitions && sourceNode.data.transitions[edge.data.transitionIndex]) {
+            const transition = sourceNode.data.transitions[edge.data.transitionIndex];
+            const newCondition = typeof transition === 'string' ? transition : transition.condition;
+            
+            // Check if this transition is still connected to the same target
+            const targetNode = typeof transition === 'object' ? transition.targetNode : null;
+            const edgeStillValid = targetNode === edge.target;
+            
+            if (edgeStillValid) {
+              // Update edge if condition has changed
+              if (edge.label !== newCondition || edge.data.condition !== newCondition) {
+                edgesUpdated = true;
+                validEdges.push({
+                  ...edge,
+                  label: newCondition,
+                  data: {
+                    ...edge.data,
+                    condition: newCondition
+                  }
+                });
+              } else {
+                validEdges.push(edge);
+              }
+            } else {
+              // Transition target changed or disconnected, remove edge
+              edgesUpdated = true;
+            }
+          } else {
+            // Transition no longer exists, remove edge
+            edgesUpdated = true;
+          }
+        } else {
+          // Non-transition edge, keep as is
+          validEdges.push(edge);
+        }
+      });
+      
+      return edgesUpdated ? validEdges : currentEdges;
+    });
+  }, [nodes, setEdges]);
+
   // Pass functions to parent component
   useEffect(() => {
     if (onNodesChange) onNodesChange({ addPromptNode, addTaskNode, getCurrentFlow, applyAIFlow });
@@ -308,9 +445,40 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
 
   const handleEdgesChange = useCallback(
     (changes) => {
+      // Handle edge deletions to clean up transition data
+      changes.forEach(change => {
+        if (change.type === 'remove') {
+          const edge = edges.find(e => e.id === change.id);
+          if (edge && edge.data?.isTransition && typeof edge.data.transitionIndex === 'number') {
+            // Clear the targetNode from the corresponding transition
+            setNodes((nds) =>
+              nds.map((node) => {
+                if (node.id === edge.source) {
+                  const updatedTransitions = [...node.data.transitions];
+                  if (updatedTransitions[edge.data.transitionIndex]) {
+                    updatedTransitions[edge.data.transitionIndex] = {
+                      ...updatedTransitions[edge.data.transitionIndex],
+                      targetNode: null
+                    };
+                  }
+                  return { 
+                    ...node, 
+                    data: { 
+                      ...node.data, 
+                      transitions: updatedTransitions 
+                    } 
+                  };
+                }
+                return node;
+              })
+            );
+          }
+        }
+      });
+      
       onEdgesStateChange(changes);
     },
-    [onEdgesStateChange]
+    [onEdgesStateChange, edges, setNodes]
   );
 
   return (
