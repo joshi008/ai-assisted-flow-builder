@@ -296,6 +296,18 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
     // Success message is handled by the calling function
   }, [setNodes, setEdges]);
 
+  const fitView = useCallback(() => {
+    if (reactFlowInstance) {
+      reactFlowInstance.fitView({ 
+        padding: 0.1,
+        includeHiddenNodes: false,
+        minZoom: 0.1,
+        maxZoom: 1.5
+      });
+      showToast.success('View adjusted to fit all nodes');
+    }
+  }, [reactFlowInstance]);
+
   const loadFlow = useCallback(() => {
     try {
       const savedFlow = localStorage.getItem('promptinator-flow');
@@ -337,11 +349,16 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
         setNodes(restoredNodes);
         setEdges(flowData.edges || []);
         
-        if (reactFlowInstance && flowData.viewport) {
-          reactFlowInstance.setViewport(flowData.viewport);
-        }
-        
-        if (flowData.nodes && flowData.nodes.length > 0) {
+        // Use fitView instead of restoring old viewport to handle canvas size changes
+        if (reactFlowInstance && flowData.nodes && flowData.nodes.length > 0) {
+          setTimeout(() => {
+            reactFlowInstance.fitView({ 
+              padding: 0.1,
+              includeHiddenNodes: false,
+              minZoom: 0.1,
+              maxZoom: 1.5
+            });
+          }, 100);
           showToast.info(`Flow loaded with ${flowData.nodes.length} nodes`);
         }
       }
@@ -356,6 +373,44 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
       loadFlow();
     }
   }, [reactFlowInstance, loadFlow]);
+
+  // Handle viewport adjustment when canvas size changes
+  useEffect(() => {
+    if (reactFlowInstance && nodes.length > 0) {
+      // Small delay to ensure canvas has resized
+      const timer = setTimeout(() => {
+        reactFlowInstance.fitView({ 
+          padding: 0.1,
+          includeHiddenNodes: false,
+          minZoom: 0.1,
+          maxZoom: 1.5
+        });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [reactFlowInstance, nodes.length]);
+
+  // Handle window resize to adjust viewport
+  useEffect(() => {
+    if (!reactFlowInstance) return;
+
+    const handleResize = () => {
+      if (nodes.length > 0) {
+        setTimeout(() => {
+          reactFlowInstance.fitView({ 
+            padding: 0.1,
+            includeHiddenNodes: false,
+            minZoom: 0.1,
+            maxZoom: 1.5
+          });
+        }, 100);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [reactFlowInstance, nodes.length]);
 
 
 
@@ -437,6 +492,18 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
       setNodes(restoredNodes);
       setEdges(cleanedEdges);
       
+      // Fit view to show all AI-generated nodes properly
+      if (reactFlowInstance && restoredNodes.length > 0) {
+        setTimeout(() => {
+          reactFlowInstance.fitView({ 
+            padding: 0.1,
+            includeHiddenNodes: false,
+            minZoom: 0.1,
+            maxZoom: 1.5
+          });
+        }, 100);
+      }
+      
       return true;
     } catch (error) {
       console.error('Error applying AI flow:', error);
@@ -516,8 +583,8 @@ export default function FlowCanvas({ onNodesChange, onEdgesChange, onSave, onCle
   // Pass functions to parent component
   useEffect(() => {
     if (onNodesChange) onNodesChange({ addPromptNode, addTaskNode, getCurrentFlow, applyAIFlow });
-    if (onEdgesChange) onEdgesChange({ saveFlow, clearFlow });
-  }, [addPromptNode, addTaskNode, saveFlow, clearFlow, getCurrentFlow, applyAIFlow, onNodesChange, onEdgesChange]);
+    if (onEdgesChange) onEdgesChange({ saveFlow, clearFlow, fitView });
+  }, [addPromptNode, addTaskNode, saveFlow, clearFlow, fitView, getCurrentFlow, applyAIFlow, onNodesChange, onEdgesChange]);
 
   const handleNodesChange = useCallback(
     (changes) => {

@@ -45,7 +45,7 @@ export default function TaskNode({ id, data }) {
         <textarea
           value={data.description || ''}
           onChange={(e) => handleUpdate('description', e.target.value)}
-          className="w-full glass-input text-sm resize-none h-16"
+          className="w-full px-2 py-1 glass-input text-sm resize-none h-16"
           placeholder="Enter task description..."
         />
       </div>

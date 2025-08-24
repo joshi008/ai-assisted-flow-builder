@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import Head from "next/head";
 import { Geist, Geist_Mono } from "next/font/google";
 import { 
   HiPlus, 
@@ -6,7 +7,8 @@ import {
   HiClipboardList,
   HiMenuAlt2,
   HiSave,
-  HiTrash
+  HiTrash,
+  HiViewGrid
 } from "react-icons/hi";
 import { TbPrompt } from "react-icons/tb";
 import Sidebar from "../components/Sidebar";
@@ -59,6 +61,16 @@ export default function Dashboard() {
       onClick: () => {
         if (flowOperations.saveFlow) {
           flowOperations.saveFlow();
+        }
+      }
+    },
+    {
+      id: 'fit-view',
+      label: 'Fit View',
+      icon: HiViewGrid,
+      onClick: () => {
+        if (flowOperations.fitView) {
+          flowOperations.fitView();
         }
       }
     },
@@ -160,6 +172,9 @@ export default function Dashboard() {
 
   return (
     <div className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </Head>
       <BackgroundLoader />
 
       <div className="relative flex h-screen">
