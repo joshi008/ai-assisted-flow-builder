@@ -10,6 +10,7 @@ import {
 } from "react-icons/hi";
 import Sidebar from "../components/Sidebar";
 import FlowCanvas from "../components/FlowCanvas";
+import BackgroundLoader from "../components/BackgroundLoader";
 import { showToast } from "../utils/toast";
 
 const geistSans = Geist({
@@ -140,20 +141,7 @@ export default function Dashboard() {
 
   return (
     <div className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
-      {/* Background Image with Glass Effect */}
-      <div className="fixed inset-0">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(/background.jpg)',
-          }}
-        />
-        {/* Glass Overlay for Better Contrast */}
-        <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px]" />
-        {/* Subtle Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/5 via-transparent to-blue-900/10" />
-      </div>
+      <BackgroundLoader />
 
       <div className="relative flex h-screen">
         {/* Sidebar Component */}

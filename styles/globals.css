@@ -5,6 +5,17 @@
   --foreground: #171717;
 }
 
+/* Prevent flash of unstyled content */
+html {
+  background-color: #f8fafc; /* Light gray fallback */
+}
+
+/* Preload critical background styles */
+body {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  transition: background 0.3s ease-in-out;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
