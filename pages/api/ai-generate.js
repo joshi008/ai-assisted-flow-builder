@@ -2,28 +2,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const { prompt, currentFlow } = req.body;
-
-    if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'Valid prompt is required' });
-    }
-
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Gemini API key not configured' });
-    }
-
-    // Create the context for the AI
-    const flowContext = `
+// AI System Prompt - Modify this to adjust AI behavior
+const AI_SYSTEM_PROMPT = `
 You are a React Flow diagram assistant for a node-based workflow builder called "Promptinator".
 
 CURRENT FLOW STRUCTURE:
-${JSON.stringify(currentFlow, null, 2)}
+{{currentFlow}}
 
 SUPPORTED NODE TYPES:
 1. PROMPT NODE:
@@ -56,9 +40,30 @@ RULES:
 5. For transitions, add them to the transitions array in node data
 6. Variables should be in the variables array and used in prompt with {{}}
 
-USER REQUEST: "${prompt}"
+USER REQUEST: "{{userPrompt}}"
 
 Please generate the updated flow JSON. Only return the JSON, no explanations.`;
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { prompt, currentFlow } = req.body;
+
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ error: 'Valid prompt is required' });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'Gemini API key not configured' });
+    }
+
+    // Create the context for the AI using the template
+    const flowContext = AI_SYSTEM_PROMPT
+      .replace('{{currentFlow}}', JSON.stringify(currentFlow, null, 2))
+      .replace('{{userPrompt}}', prompt);
 
     // Get the model
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });

@@ -1,34 +1,27 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import {
-  HiDotsVertical,
-  HiPencil,
-  HiPlus,
-  HiTrash,
-  HiVariable,
-  HiLink
-} from 'react-icons/hi';
+import { HiPlus, HiVariable, HiLink, HiPencil, HiTrash } from 'react-icons/hi';
 import { HiLinkSlash } from 'react-icons/hi2';
+import { useBaseNode, BaseNodeHeader, BaseNodeContainer, SectionHeader } from './BaseNode';
 
 export default function PromptNode({ id, data, isConnectable = false, zIndex = 0 }) {
+  // Use base node functionality
+  const baseNode = useBaseNode(id, data);
+  
+  // Extend base editing state with PromptNode-specific fields
   const [isEditing, setIsEditing] = useState({
-    title: false,
+    ...baseNode.isEditing,
     prompt: false,
     transition: null,
   });
-  const [showMenu, setShowMenu] = useState(false);
+  
+  // PromptNode specific state
   const [newVariable, setNewVariable] = useState('');
   const [showAddVariable, setShowAddVariable] = useState(false);
-  const [availableNodes, setAvailableNodes] = useState([]);
-  const titleRef = useRef(null);
-  const promptRef = useRef(null);
 
-  const handleUpdate = useCallback((field, value) => {
-    if (data.onUpdate) {
-      data.onUpdate(id, { [field]: value });
-    }
-  }, [id, data]);
-
+  // Use base handlers
+  const { handleUpdate, handleDelete } = baseNode;
+  
   const handleKeyPress = (e, field, value) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -89,85 +82,33 @@ export default function PromptNode({ id, data, isConnectable = false, zIndex = 0
     handleUpdate('prompt', updatedPrompt);
   };
 
-
+  const menuItems = [
+    {
+      icon: HiPlus,
+      label: 'Add Transition',
+      onClick: addTransition,
+    },
+    {
+      icon: HiVariable,
+      label: 'Add Variable',
+      onClick: () => setShowAddVariable(true),
+    },
+  ];
 
   return (
-    <div className="glass-strong min-w-[300px] max-w-[400px] relative">
-      <Handle type="target" position={Position.Left} className="!bg-blue-600 !border-2 !border-white" />
-
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-white/20">
-        <div className="flex items-center space-x-2 flex-1">
-          {isEditing.title ? (
-            <input
-              ref={titleRef}
-              type="text"
-              defaultValue={data.title}
-              className="glass-input px-2 py-1 text-sm font-semibold flex-1 min-w-0"
-              onKeyPress={(e) => handleKeyPress(e, 'title', e.target.value)}
-              onBlur={(e) => handleBlur('title', e.target.value)}
-              autoFocus
-            />
-          ) : (
-            <h3
-              className="text-sm font-semibold text-gray-800 cursor-pointer flex-1 truncate"
-              onClick={() => setIsEditing(prev => ({ ...prev, title: true }))}
-            >
-              {data.title}
-            </h3>
-          )}
-          <button
-            onClick={() => setIsEditing(prev => ({ ...prev, title: true }))}
-            className="p-1 hover:bg-white/30 rounded transition-colors"
-          >
-            <HiPencil className="w-3 h-3 text-gray-600" />
-          </button>
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-1 hover:bg-white/30 rounded transition-colors"
-          >
-            <HiDotsVertical className="w-4 h-4 text-gray-600" />
-          </button>
-
-          {showMenu && (
-            <div className="absolute right-0 top-8 glass-strong border border-white/30 rounded-lg py-1 z-50 min-w-[160px]">
-              <button
-                onClick={() => {
-                  addTransition();
-                  setShowMenu(false);
-                }}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-white/30 flex items-center space-x-2"
-              >
-                <HiPlus className="w-4 h-4" />
-                <span>Add Transition</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddVariable(true);
-                  setShowMenu(false);
-                }}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-white/30 flex items-center space-x-2"
-              >
-                <HiVariable className="w-4 h-4" />
-                <span>Add Variable</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (data.onDelete) data.onDelete(id);
-                  setShowMenu(false);
-                }}
-                className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-              >
-                <HiTrash className="w-4 h-4" />
-                <span>Delete Node</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+    <BaseNodeContainer hasSourceHandle={!data.transitions || data.transitions.length === 0}>
+      <BaseNodeHeader
+        title={data.title}
+        isEditing={isEditing.title}
+        onEdit={(field, value) => setIsEditing(prev => ({ ...prev, [field]: value }))}
+        onKeyPress={handleKeyPress}
+        onBlur={handleBlur}
+        showMenu={baseNode.showMenu}
+        setShowMenu={baseNode.setShowMenu}
+        menuItems={menuItems}
+      >
+        {{ onDelete: handleDelete }}
+      </BaseNodeHeader>
 
       {/* Prompt Section */}
       <div className="p-3 border-b border-white/20">
@@ -181,18 +122,13 @@ export default function PromptNode({ id, data, isConnectable = false, zIndex = 0
       </div>
 
       {/* Variables Section */}
-      {((data.variables && data.variables.length > 0) || showAddVariable) &&
+      {((data.variables && data.variables.length > 0) || showAddVariable) && (
         <div className="p-3 border-b border-white/20">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-gray-600">Variables</label>
-            <button
-              onClick={() => setShowAddVariable(true)}
-              className="p-1 hover:bg-white/30 rounded transition-colors"
-              title="Add Variable"
-            >
-              <HiPlus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-            </button>
-          </div>
+          <SectionHeader
+            label="Variables"
+            onAdd={() => setShowAddVariable(true)}
+            addLabel="Add Variable"
+          />
           <div className="space-y-2">
             {data.variables && data.variables.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -246,22 +182,16 @@ export default function PromptNode({ id, data, isConnectable = false, zIndex = 0
             )}
           </div>
         </div>
-      }
-
+      )}
 
       {/* Transitions Section */}
-      {data.transitions && data.transitions.length > 0 &&
+      {data.transitions && data.transitions.length > 0 && (
         <div className="p-3">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-gray-600">Transitions</label>
-            <button
-              onClick={addTransition}
-              className="p-1 hover:bg-white/30 rounded transition-colors"
-              title="Add Transition"
-            >
-              <HiPlus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-            </button>
-          </div>
+          <SectionHeader
+            label="Transitions"
+            onAdd={addTransition}
+            addLabel="Add Transition"
+          />
           <div className="space-y-2">
             {data.transitions.map((transition, index) => {
               // Handle both old string format and new object format
@@ -336,12 +266,7 @@ export default function PromptNode({ id, data, isConnectable = false, zIndex = 0
             })}
           </div>
         </div>
-      }
-
-
-      {!data.transitions || data.transitions.length == 0 && (
-        <Handle type="source" position={Position.Right} className="!bg-blue-600 !border-2 !border-white" />
       )}
-    </div>
+    </BaseNodeContainer>
   );
 }
