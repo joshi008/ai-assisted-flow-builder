@@ -6,11 +6,12 @@ import {
   HiClipboardList,
   HiPaperAirplane
 } from "react-icons/hi";
+import { TbPrompt } from "react-icons/tb";
 
 export default function Sidebar({ 
   isCollapsed, 
   onToggleCollapse, 
-  logoIcon: LogoIcon = HiCube,
+  logoIcon: LogoIcon = TbPrompt,
   appName = "Promptinator",
   menuItems = [],
   controlItems = [],

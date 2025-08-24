@@ -8,6 +8,7 @@ import {
   HiSave,
   HiTrash
 } from "react-icons/hi";
+import { TbPrompt } from "react-icons/tb";
 import Sidebar from "../components/Sidebar";
 import FlowCanvas from "../components/FlowCanvas";
 import BackgroundLoader from "../components/BackgroundLoader";
@@ -166,7 +167,7 @@ export default function Dashboard() {
         <Sidebar 
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          logoIcon={HiCube}
+          logoIcon={TbPrompt}
           appName="Promptinator"
           menuItems={menuItems}
           controlItems={controlItems}
@@ -176,7 +177,7 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <div className={`flex-1 flex flex-col transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-80'
+          sidebarCollapsed ? '' : ''
         }`}>
           {/* Mobile Header */}
           <div className="lg:hidden glass border-b border-white/20 px-4 py-3">

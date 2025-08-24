@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Sitemap location (replace with your actual domain when deployed)
+Sitemap: https://promptinator.vercel.app/sitemap.xml
+
+# Crawl-delay (in seconds) - optional
+Crawl-delay: 1
+
+# Disallow certain directories if needed
+# Disallow: /api/
+# Disallow: /_next/
+
+# Allow important resources
+Allow: /favicon.ico
+Allow: /favicon.svg
+Allow: /manifest.json
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.svg

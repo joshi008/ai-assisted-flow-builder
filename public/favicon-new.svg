@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Very simple purple "P" - no transparency issues -->
+  <rect x="4" y="4" width="4" height="24" fill="#8b5cf6"/>
+  <rect x="8" y="4" width="12" height="4" fill="#8b5cf6"/>
+  <rect x="8" y="14" width="8" height="4" fill="#8b5cf6"/>
+  <rect x="16" y="8" width="4" height="6" fill="#8b5cf6"/>
+  
+  <!-- Yellow dot -->
+  <circle cx="24" cy="8" r="2" fill="#fbbf24"/>
+</svg>
